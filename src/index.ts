@@ -16,47 +16,43 @@ async function main(): Promise<void> {
     const app = express();
     app.use(cors());
 
-    // Map to keep track of multiple AI agents connecting at once
-    const transports = new Map<string, SSEServerTransport>();
+    let transport: SSEServerTransport;
 
-    // Accept SSE connections
+    // 1. Accept SSE connections from Real AI Agents
     app.get(["/", "/sse", "/mcp"], async (req, res) => {
-      // Generate a unique session ID for this connection
-      const sessionId = Math.random().toString(36).substring(7);
-      
       const protocol = req.headers['x-forwarded-proto'] || 'http';
       const host = req.headers['x-forwarded-host'] || req.headers.host;
       
-      // Tell the client to include their specific Session ID in all messages
-      const messageUrl = `${protocol}://${host}/message?sessionId=${sessionId}`;
+      // Tell the AI to send messages to the exact same path they connected to, plus "/message"
+      const basePath = req.originalUrl.endsWith('/') ? req.originalUrl.slice(0, -1) : req.originalUrl;
+      const messageUrl = `${protocol}://${host}${basePath}/message`;
       
-      const transport = new SSEServerTransport(messageUrl, res);
-      transports.set(sessionId, transport);
-      
+      transport = new SSEServerTransport(messageUrl, res);
       await server.connect(transport);
-      console.log(`[CONNECT] New agent connected! Session: ${sessionId}`);
+      console.log(`[CONNECT] Real AI Agent connected to ${req.originalUrl}`);
     });
 
-    // Accept MCP messages
-    app.post(["/", "/message", "/mcp/message", "/mcp"], async (req, res) => {
-      const sessionId = req.query.sessionId as string;
-      const transport = transports.get(sessionId);
-      
+    // 2. Accept POST messages from Real AI Agents
+    app.post(["/message", "/mcp/message", "/sse/message"], async (req, res) => {
       if (transport) {
-        // If it's a real AI agent (like Antigravity), process the message safely
         await transport.handlePostMessage(req, res);
       } else {
-        // If it's the Manufact automated health checker pinging us, give it a fake handshake
-        res.json({
-          jsonrpc: "2.0",
-          id: 1,
-          result: {
-            protocolVersion: "2024-11-05",
-            capabilities: {},
-            serverInfo: { name: "job-hunter", version: "1.0.0" }
-          }
-        });
+        res.status(503).send("SSE connection not established");
       }
+    });
+    
+    // 3. Fake Handshake for Manufact's Automated Health Checker
+    // This catches Manufact's "POST /mcp" requests without breaking the real connection
+    app.post(["/", "/mcp", "/sse"], (req, res) => {
+      res.json({
+        jsonrpc: "2.0",
+        id: 1,
+        result: {
+          protocolVersion: "2024-11-05",
+          capabilities: {},
+          serverInfo: { name: "job-hunter", version: "1.0.0" }
+        }
+      });
     });
 
     app.listen(port, () => {
