@@ -20,20 +20,32 @@ async function main(): Promise<void> {
 
     let transport: SSEServerTransport;
 
-        // Accept SSE connections 
-    app.get(["/", "/sse"], async (req, res) => {
-      transport = new SSEServerTransport("/message", res);
+           // Log every request to see what Manufact is looking for
+    app.use((req, res, next) => {
+      console.log(`[NETWORK] Manufact requested: ${req.method} ${req.url}`);
+      next();
+    });
+
+    app.get(["/", "/sse", "/mcp"], async (req, res) => {
+      console.log("SSE Connection established!");
+      // Use a dynamic URL so it works behind Manufact's proxies
+      const protocol = req.headers['x-forwarded-proto'] || 'http';
+      const host = req.headers.host;
+      const messageUrl = `${protocol}://${host}/message`;
+      
+      transport = new SSEServerTransport(messageUrl, res);
       await server.connect(transport);
     });
 
-    // Accept MCP messages
-    app.post(["/", "/message"], async (req, res) => {
+    app.post(["/", "/message", "/mcp/message"], async (req, res) => {
+      console.log("Received POST message from Manufact");
       if (transport) {
         await transport.handlePostMessage(req, res);
       } else {
         res.status(503).send("SSE connection not established");
       }
     });
+
     app.listen(port, () => {
       console.log(`Job Hunter MCP Server running on SSE transport (HTTP) at http://localhost:${port}`);
       console.log(`Tools registered: 22`);
