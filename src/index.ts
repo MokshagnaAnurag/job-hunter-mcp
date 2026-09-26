@@ -20,23 +20,20 @@ async function main(): Promise<void> {
 
     let transport: SSEServerTransport;
 
-    // Accept SSE connections on ANY path
-    app.get("*", async (req, res) => {
-      // We pass the full requested URL back so the client knows exactly where to POST
-      const messageUrl = req.originalUrl === "/" ? "/message" : req.originalUrl + "/message";
-      transport = new SSEServerTransport(messageUrl, res);
+        // Accept SSE connections 
+    app.get(["/", "/sse"], async (req, res) => {
+      transport = new SSEServerTransport("/message", res);
       await server.connect(transport);
     });
 
-    // Accept MCP messages on ANY path
-    app.post("*", async (req, res) => {
+    // Accept MCP messages
+    app.post(["/", "/message"], async (req, res) => {
       if (transport) {
         await transport.handlePostMessage(req, res);
       } else {
         res.status(503).send("SSE connection not established");
       }
     });
-
     app.listen(port, () => {
       console.log(`Job Hunter MCP Server running on SSE transport (HTTP) at http://localhost:${port}`);
       console.log(`Tools registered: 22`);
