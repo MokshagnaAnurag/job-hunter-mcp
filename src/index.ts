@@ -20,14 +20,16 @@ async function main(): Promise<void> {
 
     let transport: SSEServerTransport;
 
-    // SSE endpoint for AI clients to connect
-    app.get(["/", "/sse"], async (req, res) => {
-      transport = new SSEServerTransport("/message", res);
+    // Accept SSE connections on ANY path
+    app.get("*", async (req, res) => {
+      // We pass the full requested URL back so the client knows exactly where to POST
+      const messageUrl = req.originalUrl === "/" ? "/message" : req.originalUrl + "/message";
+      transport = new SSEServerTransport(messageUrl, res);
       await server.connect(transport);
     });
 
-    // Endpoint for AI clients to send messages to the server
-    app.post("/message", async (req, res) => {
+    // Accept MCP messages on ANY path
+    app.post("*", async (req, res) => {
       if (transport) {
         await transport.handlePostMessage(req, res);
       } else {
@@ -35,12 +37,8 @@ async function main(): Promise<void> {
       }
     });
 
-    // Health check for deployment platforms
-    app.get("/health", (req, res) => res.send("OK"));
-
     app.listen(port, () => {
       console.log(`Job Hunter MCP Server running on SSE transport (HTTP) at http://localhost:${port}`);
-      console.log(`SSE URL: http://localhost:${port}/sse`);
       console.log(`Tools registered: 22`);
     });
   } else {
