@@ -21,7 +21,7 @@ async function main(): Promise<void> {
     let transport: SSEServerTransport;
 
     // SSE endpoint for AI clients to connect
-    app.get("/sse", async (req, res) => {
+    app.get(["/", "/sse"], async (req, res) => {
       transport = new SSEServerTransport("/message", res);
       await server.connect(transport);
     });
