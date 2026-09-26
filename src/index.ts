@@ -10,39 +10,43 @@ import cors from "cors";
 
 async function main(): Promise<void> {
   const server = createJobHunterServer();
-
-  // If PORT is provided, assume cloud deployment (SSE/HTTP)
   const port = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
 
   if (port) {
     const app = express();
     app.use(cors());
 
-    let transport: SSEServerTransport;
+    // Map to keep track of multiple AI agents connecting at once
+    const transports = new Map<string, SSEServerTransport>();
 
-    // Log every request to see what Manufact is looking for
-    app.use((req, res, next) => {
-      console.log(`[NETWORK] Manufact requested: ${req.method} ${req.url}`);
-      next();
-    });
-
+    // Accept SSE connections
     app.get(["/", "/sse", "/mcp"], async (req, res) => {
-      console.log("SSE Connection established!");
-      // Use a dynamic URL so it works behind Manufact's proxies
-      const protocol = req.headers['x-forwarded-proto'] || 'http';
-      const host = req.headers.host;
-      const messageUrl = `${protocol}://${host}/message`;
+      // Generate a unique session ID for this connection
+      const sessionId = Math.random().toString(36).substring(7);
       
-      transport = new SSEServerTransport(messageUrl, res);
+      const protocol = req.headers['x-forwarded-proto'] || 'http';
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      
+      // Tell the client to include their specific Session ID in all messages
+      const messageUrl = `${protocol}://${host}/message?sessionId=${sessionId}`;
+      
+      const transport = new SSEServerTransport(messageUrl, res);
+      transports.set(sessionId, transport);
+      
       await server.connect(transport);
+      console.log(`[CONNECT] New agent connected! Session: ${sessionId}`);
     });
 
+    // Accept MCP messages
     app.post(["/", "/message", "/mcp/message", "/mcp"], async (req, res) => {
-      console.log("Received POST message from Manufact");
+      const sessionId = req.query.sessionId as string;
+      const transport = transports.get(sessionId);
+      
       if (transport) {
+        // If it's a real AI agent (like Antigravity), process the message safely
         await transport.handlePostMessage(req, res);
       } else {
-        // If Manufact is just health-checking with a raw POST, give it a fake successful handshake!
+        // If it's the Manufact automated health checker pinging us, give it a fake handshake
         res.json({
           jsonrpc: "2.0",
           id: 1,
@@ -63,10 +67,7 @@ async function main(): Promise<void> {
     // Default to Stdio transport for local Desktop Clients (Claude Desktop)
     const transport = new StdioServerTransport();
     await server.connect(transport);
-
     console.error("Job Hunter MCP Server running on stdio transport");
-    console.error("Tools registered: 22");
-    console.error("Ready to accept connections.");
   }
 }
 
