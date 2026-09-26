@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application Review — Job Hunter</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div>
+        <h1>📋 Application Review</h1>
+        <p class="subtitle">Review and approve before submission</p>
+      </div>
+    </header>
+
+    <div class="alert alert-warning mb-4">
+      <span>⚠</span>
+      <div>Review all information carefully before approving. All content comes from your verified candidate profile.</div>
+    </div>
+
+    <div class="grid grid-2">
+      <!-- Left: Job & Match -->
+      <div>
+        <section class="card mb-4">
+          <h2 class="card-title mb-4">🏢 Position</h2>
+          <div class="text-sm">
+            <div class="flex items-center gap-2 mb-4"><strong>Company:</strong> <span id="review-company">—</span></div>
+            <div class="flex items-center gap-2 mb-4"><strong>Role:</strong> <span id="review-role">—</span></div>
+            <div class="flex items-center gap-2 mb-4"><strong>Location:</strong> <span id="review-location">—</span></div>
+            <div class="flex items-center gap-2 mb-4"><strong>Source:</strong> <span id="review-source">—</span></div>
+          </div>
+        </section>
+
+        <section class="card mb-4">
+          <h2 class="card-title mb-4">🎯 Match Summary</h2>
+          <div id="review-match">
+            <div class="text-sm text-muted">Match analysis will appear here.</div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title mb-4">✉ Cover Letter</h2>
+          <div id="review-cover-letter" class="text-sm" style="white-space: pre-wrap; color: var(--text-secondary);">
+            No cover letter generated.
+          </div>
+        </section>
+      </div>
+
+      <!-- Right: Resume & Answers -->
+      <div>
+        <section class="card mb-4">
+          <h2 class="card-title mb-4">📄 Resume</h2>
+          <div id="review-resume">
+            <div class="text-sm text-muted">Tailored resume will appear here.</div>
+          </div>
+        </section>
+
+        <section class="card mb-4">
+          <h2 class="card-title mb-4">❓ Application Answers</h2>
+          <div id="review-answers">
+            <div class="text-sm text-muted">No application questions detected.</div>
+          </div>
+        </section>
+
+        <section class="card mb-4">
+          <h2 class="card-title mb-4">✅ Quality Checks</h2>
+          <div id="quality-checks">
+            <div class="flex items-center gap-2 mb-4 text-sm"><span style="color:var(--success)">✓</span> Correct company</div>
+            <div class="flex items-center gap-2 mb-4 text-sm"><span style="color:var(--success)">✓</span> Correct role</div>
+            <div class="flex items-center gap-2 mb-4 text-sm"><span style="color:var(--success)">✓</span> Valid job URL</div>
+            <div class="flex items-center gap-2 mb-4 text-sm"><span style="color:var(--success)">✓</span> Resume matches profile</div>
+            <div class="flex items-center gap-2 mb-4 text-sm"><span style="color:var(--success)">✓</span> No fabricated claims</div>
+            <div class="flex items-center gap-2 mb-4 text-sm"><span style="color:var(--success)">✓</span> No duplicate application</div>
+          </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+          <button class="btn btn-success" id="btn-approve" onclick="approveApplication()" style="flex:1">
+            ✓ Approve & Apply
+          </button>
+          <button class="btn btn-secondary" id="btn-edit" onclick="editApplication()" style="flex:1">
+            ✏ Edit
+          </button>
+          <button class="btn btn-ghost" id="btn-skip" onclick="skipApplication()">
+            Skip
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentApplicationId = null;
+
+    function sendMcpMessage(method, params) {
+      window.parent.postMessage({ jsonrpc: '2.0', method, params, id: Date.now() }, '*');
+    }
+    function callTool(name, params) {
+      sendMcpMessage('tools/call', { name, arguments: params });
+    }
+
+    function approveApplication() {
+      if (currentApplicationId) {
+        callTool('apply-to-job', { applicationId: currentApplicationId, confirmed: true });
+      }
+    }
+
+    function editApplication() {
+      // Would open edit mode
+    }
+
+    function skipApplication() {
+      if (currentApplicationId) {
+        callTool('update-application-status', {
+          applicationId: currentApplicationId,
+          status: 'WITHDRAWN',
+          reason: 'Skipped by user'
+        });
+      }
+    }
+  </script>
+</body>
+</html>

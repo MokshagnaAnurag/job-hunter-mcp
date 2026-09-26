@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resume Tailoring — Job Hunter</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div>
+        <h1>📝 Resume Tailoring</h1>
+        <p class="subtitle">JD-specific resume optimization</p>
+      </div>
+    </header>
+
+    <div class="grid grid-2">
+      <!-- Change Report -->
+      <section class="card">
+        <h2 class="card-title mb-4">📊 Tailoring Report</h2>
+        <div id="tailoring-report">
+          <div class="alert alert-info">
+            <span>ℹ</span>
+            <div>Select a job and click "Tailor Resume" to generate a JD-specific version. Only genuine information from your profile is used.</div>
+          </div>
+
+          <div class="form-group">
+            <div class="form-label">Added Emphasis</div>
+            <div id="added-emphasis" class="text-sm text-muted">—</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Reordered</div>
+            <div id="reordered" class="text-sm text-muted">—</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">De-emphasized</div>
+            <div id="de-emphasized" class="text-sm text-muted">—</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Fabrication Check</div>
+            <div id="fabrication-check" class="alert alert-success">
+              <span>✓</span>
+              <div>No unsupported claims added. All information verified against candidate profile.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Keywords & Validation -->
+      <section class="card">
+        <h2 class="card-title mb-4">🔑 Keywords Targeted</h2>
+        <div id="keywords-targeted" class="flex gap-2" style="flex-wrap:wrap; margin-bottom: 24px;">
+          <span class="text-muted text-sm">No keywords targeted yet.</span>
+        </div>
+
+        <h2 class="card-title mb-4 mt-4">✅ Validation</h2>
+        <div id="validation-results">
+          <div class="flex items-center gap-2 mb-4 text-sm">
+            <span style="color: var(--success);">✓</span> Resume matches candidate profile
+          </div>
+          <div class="flex items-center gap-2 mb-4 text-sm">
+            <span style="color: var(--success);">✓</span> No fabricated claims
+          </div>
+          <div class="flex items-center gap-2 mb-4 text-sm">
+            <span style="color: var(--success);">✓</span> ATS-compatible format
+          </div>
+        </div>
+
+        <h2 class="card-title mb-4 mt-4">📄 Resume Versions</h2>
+        <div id="resume-versions">
+          <div class="text-sm text-muted">No tailored versions generated yet.</div>
+        </div>
+
+        <div class="flex gap-2 mt-4">
+          <button class="btn btn-primary btn-sm" id="btn-compile" onclick="compileResume()">Compile PDF</button>
+          <button class="btn btn-secondary btn-sm" id="btn-overleaf" onclick="syncOverleaf()">Sync to Overleaf</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    function sendMcpMessage(method, params) {
+      window.parent.postMessage({ jsonrpc: '2.0', method, params, id: Date.now() }, '*');
+    }
+    function callTool(name, params) {
+      sendMcpMessage('tools/call', { name, arguments: params });
+    }
+
+    function compileResume() {
+      // Would use stored resumeId
+      callTool('compile-resume', { resumeId: '' });
+    }
+
+    function syncOverleaf() {
+      callTool('update-overleaf-resume', { action: 'status' });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Detail — Job Hunter</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div>
+        <h1 id="job-title">Job Details</h1>
+        <p class="subtitle" id="job-company">Loading...</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-secondary btn-sm" onclick="matchJob()">Match Profile</button>
+        <button class="btn btn-primary btn-sm" onclick="tailorResume()">Tailor Resume</button>
+      </div>
+    </header>
+
+    <div class="grid grid-2">
+      <!-- Left: JD & Requirements -->
+      <div>
+        <section class="card mb-4">
+          <h2 class="card-title mb-4">📋 Job Description</h2>
+          <div id="jd-content" class="text-sm" style="white-space: pre-wrap; color: var(--text-secondary);">
+            Select a job to view its details.
+          </div>
+        </section>
+
+        <section class="card mb-4">
+          <h2 class="card-title mb-4">📌 Requirements</h2>
+          <div id="requirements-content">
+            <div class="form-group">
+              <div class="form-label">Required Skills</div>
+              <div id="required-skills" class="flex gap-2" style="flex-wrap:wrap;"></div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">Preferred Skills</div>
+              <div id="preferred-skills" class="flex gap-2" style="flex-wrap:wrap;"></div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">Education</div>
+              <div id="education-req" class="text-sm text-muted"></div>
+            </div>
+            <div class="form-group">
+              <div class="form-label">Experience</div>
+              <div id="experience-req" class="text-sm text-muted"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title mb-4">📝 Responsibilities</h2>
+          <ul id="responsibilities" style="padding-left:20px; color: var(--text-secondary); font-size: 14px;"></ul>
+        </section>
+      </div>
+
+      <!-- Right: Match & Application -->
+      <div>
+        <section class="card mb-4">
+          <h2 class="card-title mb-4">🎯 Match Analysis</h2>
+          <div id="match-section">
+            <div class="empty-state">
+              <p class="empty-state-text">Click "Match Profile" to generate a match analysis.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card mb-4">
+          <h2 class="card-title mb-4">📄 Resume Version</h2>
+          <div id="resume-section">
+            <div class="empty-state">
+              <p class="empty-state-text">Click "Tailor Resume" to create a JD-specific version.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="card mb-4">
+          <h2 class="card-title mb-4">📊 Application Status</h2>
+          <div id="application-status">
+            <span class="badge discovered">NOT APPLIED</span>
+            <p class="text-sm text-muted mt-2">No application submitted for this job yet.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2 class="card-title mb-4">🏷 Application Requirements</h2>
+          <div id="app-requirements" class="text-sm">
+            <div class="flex items-center gap-2 mb-4"><span>📄</span> Resume: <strong>Required</strong></div>
+            <div class="flex items-center gap-2 mb-4" id="req-cover-letter" style="display:none"><span>✉</span> Cover Letter: <strong>Required</strong></div>
+            <div class="flex items-center gap-2 mb-4" id="req-portfolio" style="display:none"><span>🎨</span> Portfolio: <strong>Required</strong></div>
+            <div class="flex items-center gap-2 mb-4" id="req-github" style="display:none"><span>💻</span> GitHub: <strong>Required</strong></div>
+            <div class="flex items-center gap-2 mb-4" id="req-assessment" style="display:none"><span>🧪</span> Coding Assessment: <strong>Yes</strong></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentJobId = null;
+
+    function sendMcpMessage(method, params) {
+      window.parent.postMessage({ jsonrpc: '2.0', method, params, id: Date.now() }, '*');
+    }
+    function callTool(name, params) {
+      sendMcpMessage('tools/call', { name, arguments: params });
+    }
+
+    function matchJob() {
+      if (currentJobId) callTool('match-job', { jobId: currentJobId });
+    }
+
+    function tailorResume() {
+      if (currentJobId) callTool('tailor-resume', { jobId: currentJobId });
+    }
+
+    function renderMatchAnalysis(match) {
+      const section = document.getElementById('match-section');
+      section.innerHTML = `
+        <div class="flex items-center justify-between mb-4">
+          <span class="card-title">Overall Score</span>
+          <span class="match-score ${match.overallScore >= 70 ? 'high' : match.overallScore >= 40 ? 'medium' : 'low'}">
+            ${match.overallScore}/100
+          </span>
+        </div>
+        <div class="progress-bar mb-4">
+          <div class="progress-fill" style="width: ${match.overallScore}%"></div>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Matching Skills</div>
+          <div class="flex gap-2" style="flex-wrap:wrap">
+            ${match.matchingSkills.map(s => `<span class="badge applied">✓ ${s}</span>`).join('')}
+          </div>
+        </div>
+        <div class="form-group mt-2">
+          <div class="form-label">Missing Skills</div>
+          <div class="flex gap-2" style="flex-wrap:wrap">
+            ${match.missingSkills.map(s => `<span class="badge rejected">• ${s}</span>`).join('')}
+          </div>
+        </div>
+        <div class="mt-2 text-sm text-muted">
+          <div>Experience: ${match.experienceAlignment}</div>
+          <div>Location: ${match.locationMatch ? '✓ Match' : '⚠ May not match'}</div>
+          <div>Salary: ${match.salaryMatch}</div>
+        </div>
+      `;
+    }
+
+    window.addEventListener('message', (event) => {
+      const data = event.data;
+      if (data?.result) console.log('Response:', data);
+    });
+  </script>
+</body>
+</html>

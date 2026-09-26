@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Search — Job Hunter</title>
+  <meta name="description" content="Search and discover relevant job openings with match analysis">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div>
+        <h1>🔍 Job Search</h1>
+        <p class="subtitle">Discover relevant positions</p>
+      </div>
+    </header>
+
+    <!-- Search Filters -->
+    <section class="card mb-4">
+      <div class="card-header">
+        <h2 class="card-title">Search Filters</h2>
+        <button class="btn btn-primary btn-sm" id="btn-search" onclick="searchJobs()">Search</button>
+      </div>
+      <div class="grid grid-3 gap-3">
+        <div class="form-group">
+          <label class="form-label">Keywords</label>
+          <input type="text" class="form-input" id="keywords" placeholder="e.g., Robotics Engineer, ROS2">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input type="text" class="form-input" id="location" placeholder="e.g., Bangalore">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Experience Level</label>
+          <select class="form-input" id="experience">
+            <option value="">Any</option>
+            <option value="ENTRY" selected>Entry Level</option>
+            <option value="JUNIOR">Junior</option>
+            <option value="MID">Mid Level</option>
+            <option value="SENIOR">Senior</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Employment Type</label>
+          <select class="form-input" id="employment-type">
+            <option value="">Any</option>
+            <option value="FULL_TIME" selected>Full Time</option>
+            <option value="INTERNSHIP">Internship</option>
+            <option value="CONTRACT">Contract</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Remote</label>
+          <select class="form-input" id="remote">
+            <option value="">Any</option>
+            <option value="true">Remote Only</option>
+            <option value="false">On-site</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Source</label>
+          <select class="form-input" id="source">
+            <option value="">All Sources</option>
+            <option value="ADZUNA">Adzuna</option>
+            <option value="THE_MUSE">The Muse</option>
+            <option value="ARBEITNOW">Arbeitnow</option>
+            <option value="REMOTIVE">Remotive</option>
+            <option value="REED">Reed</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section id="results-section">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="card-title" id="results-count">Jobs</h2>
+        <div class="flex gap-2">
+          <button class="btn btn-ghost btn-sm" onclick="sortBy('match')">Sort by Match</button>
+          <button class="btn btn-ghost btn-sm" onclick="sortBy('date')">Sort by Date</button>
+        </div>
+      </div>
+
+      <div class="grid grid-auto stagger" id="jobs-grid">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔍</div>
+          <p class="empty-state-title">Search for jobs</p>
+          <p class="empty-state-text">Use the filters above to search across configured job sources.</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function sendMcpMessage(method, params) {
+      window.parent.postMessage(
+        { jsonrpc: '2.0', method, params, id: Date.now() },
+        '*'
+      );
+    }
+
+    function callTool(name, params) {
+      sendMcpMessage('tools/call', { name, arguments: params });
+    }
+
+    function searchJobs() {
+      const keywords = document.getElementById('keywords').value;
+      const location = document.getElementById('location').value;
+      const experience = document.getElementById('experience').value;
+      const employmentType = document.getElementById('employment-type').value;
+      const remote = document.getElementById('remote').value;
+      const source = document.getElementById('source').value;
+
+      const params = { limit: 25 };
+      if (keywords) params.keywords = keywords.split(',').map(k => k.trim());
+      if (location) params.location = location;
+      if (experience) params.experienceLevel = experience;
+      if (employmentType) params.employmentType = employmentType;
+      if (remote) params.remote = remote === 'true';
+      if (source) params.source = source;
+
+      callTool('search-jobs', params);
+      document.getElementById('results-count').textContent = 'Searching...';
+    }
+
+    function getMatchClass(score) {
+      if (score >= 70) return 'high';
+      if (score >= 40) return 'medium';
+      return 'low';
+    }
+
+    function renderJobs(jobs) {
+      const grid = document.getElementById('jobs-grid');
+      document.getElementById('results-count').textContent = `${jobs.length} Jobs Found`;
+
+      grid.innerHTML = jobs.map(job => `
+        <div class="job-card animate-fade-in">
+          <div class="flex justify-between items-center">
+            <div class="job-title">${job.title}</div>
+            ${job.match_score ? `<span class="match-score ${getMatchClass(job.match_score)}">${job.match_score}%</span>` : ''}
+          </div>
+          <div class="job-company">${job.company}</div>
+          <div class="job-meta">
+            <span class="job-tag">📍 ${job.location || 'N/A'}</span>
+            <span class="job-tag">🔗 ${job.source}</span>
+            ${job.salary ? `<span class="job-tag">💰 ${job.salary}</span>` : ''}
+            ${job.remote === 'REMOTE' ? '<span class="job-tag">🏠 Remote</span>' : ''}
+          </div>
+          <div class="flex gap-2 mt-2">
+            <button class="btn btn-primary btn-sm" onclick="analyzeJob('${job.id}')">Analyze</button>
+            <button class="btn btn-secondary btn-sm" onclick="matchJob('${job.id}')">Match</button>
+            <a href="${job.job_url}" target="_blank" class="btn btn-ghost btn-sm">View →</a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function analyzeJob(jobId) { callTool('analyze-job', { jobId }); }
+    function matchJob(jobId) { callTool('match-job', { jobId }); }
+    function sortBy(type) { /* Would re-sort the current results */ }
+
+    window.addEventListener('message', (event) => {
+      const data = event.data;
+      if (data && data.result) console.log('Response:', data);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interviews — Job Hunter</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div>
+        <h1>🎯 Interviews</h1>
+        <p class="subtitle">Upcoming interviews and schedule</p>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="callTool('get-upcoming-interviews', {})">Refresh</button>
+    </header>
+
+    <!-- Upcoming -->
+    <section class="mb-4">
+      <h2 class="card-title mb-4">📅 Upcoming Interviews</h2>
+      <div class="grid grid-auto stagger" id="upcoming-interviews">
+        <div class="empty-state">
+          <div class="empty-state-icon">📅</div>
+          <p class="empty-state-title">No upcoming interviews</p>
+          <p class="empty-state-text">When interview invitations are detected, they'll appear here with date, time, and meeting details.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Past Interviews -->
+    <section>
+      <h2 class="card-title mb-4">📚 Interview History</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Role</th>
+              <th>Round</th>
+              <th>Type</th>
+              <th>Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="interview-history">
+            <tr>
+              <td colspan="6" class="text-muted" style="text-align:center;padding:32px;">No interview history.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    function sendMcpMessage(method, params) {
+      window.parent.postMessage({ jsonrpc: '2.0', method, params, id: Date.now() }, '*');
+    }
+    function callTool(name, params) {
+      sendMcpMessage('tools/call', { name, arguments: params });
+    }
+
+    function renderInterviews(interviews) {
+      const container = document.getElementById('upcoming-interviews');
+      if (!interviews || interviews.length === 0) return;
+
+      container.innerHTML = interviews.map(int => `
+        <div class="interview-card animate-fade-in">
+          <div class="flex justify-between items-center">
+            <div>
+              <div class="job-title">${int.company}</div>
+              <div class="job-company">${int.role}</div>
+            </div>
+            <span class="badge ${int.status === 'SCHEDULED' ? 'interview' : 'pending'}">${int.status}</span>
+          </div>
+          <div class="interview-meta">
+            <span class="interview-meta-item">🎯 ${int.round || 'Interview'}</span>
+            <span class="interview-meta-item">📋 ${int.type}</span>
+            ${int.date ? `<span class="interview-meta-item">📅 ${int.date}</span>` : ''}
+            ${int.time ? `<span class="interview-meta-item">🕐 ${int.time} ${int.timezone || ''}</span>` : ''}
+          </div>
+          ${int.meeting_url ? `
+            <div class="mt-2">
+              <a href="${int.meeting_url}" target="_blank" class="btn btn-primary btn-sm">🔗 Join Meeting</a>
+            </div>
+          ` : ''}
+          ${int.instructions ? `
+            <div class="mt-2 text-sm text-muted">
+              <strong>Preparation:</strong> ${int.instructions}
+            </div>
+          ` : ''}
+        </div>
+      `).join('');
+    }
+
+    window.addEventListener('message', (event) => {
+      const data = event.data;
+      if (data?.result) console.log('Response:', data);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notifications — Job Hunter</title>
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div>
+        <h1>🔔 Notifications</h1>
+        <p class="subtitle">Application events and alerts</p>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Mark all as read</button>
+    </header>
+
+    <!-- Filter tabs -->
+    <div class="tabs mb-4">
+      <button class="tab active" onclick="filterNotifs('ALL')">All</button>
+      <button class="tab" onclick="filterNotifs('INTERVIEW')">Interviews</button>
+      <button class="tab" onclick="filterNotifs('SHORTLISTED')">Shortlisted</button>
+      <button class="tab" onclick="filterNotifs('OFFER')">Offers</button>
+      <button class="tab" onclick="filterNotifs('REJECTION')">Rejections</button>
+      <button class="tab" onclick="filterNotifs('MANUAL_ACTION')">Action Required</button>
+    </div>
+
+    <div id="notifications-container">
+      <div class="empty-state">
+        <div class="empty-state-icon">🔕</div>
+        <p class="empty-state-title">No notifications</p>
+        <p class="empty-state-text">You'll receive notifications when important application events occur.</p>
+      </div>
+    </div>
+
+    <!-- Sample notification structure -->
+    <div id="sample-notifications" style="display:none">
+      <div class="notification unread high-priority animate-slide-in">
+        <span class="notification-icon">🎯</span>
+        <div style="flex:1">
+          <div class="notification-title">Interview Invitation — ABC Robotics</div>
+          <div class="notification-message">You've been invited for a Technical Interview for Robotics Software Engineer.</div>
+          <div class="notification-time">2 hours ago</div>
+        </div>
+        <button class="btn btn-ghost btn-sm">View</button>
+      </div>
+
+      <div class="notification unread animate-slide-in">
+        <span class="notification-icon">🎉</span>
+        <div style="flex:1">
+          <div class="notification-title">Shortlisted — XYZ Technologies</div>
+          <div class="notification-message">Your application for Embedded Engineer has been shortlisted for the next round.</div>
+          <div class="notification-time">5 hours ago</div>
+        </div>
+        <button class="btn btn-ghost btn-sm">View</button>
+      </div>
+
+      <div class="notification animate-slide-in">
+        <span class="notification-icon">📬</span>
+        <div style="flex:1">
+          <div class="notification-title">Application Submitted — DEF Corp</div>
+          <div class="notification-message">Successfully applied to ROS2 Engineer position.</div>
+          <div class="notification-time">1 day ago</div>
+        </div>
+        <button class="btn btn-ghost btn-sm">View</button>
+      </div>
+
+      <div class="notification animate-slide-in">
+        <span class="notification-icon">❌</span>
+        <div style="flex:1">
+          <div class="notification-title">Application Update — GHI Labs</div>
+          <div class="notification-message">Unfortunately, your application for UAV Engineer was not selected.</div>
+          <div class="notification-time">2 days ago</div>
+        </div>
+        <button class="btn btn-ghost btn-sm">View</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function sendMcpMessage(method, params) {
+      window.parent.postMessage({ jsonrpc: '2.0', method, params, id: Date.now() }, '*');
+    }
+    function callTool(name, params) {
+      sendMcpMessage('tools/call', { name, arguments: params });
+    }
+
+    function filterNotifs(type) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function markAllRead() {
+      sendMcpMessage('notifications/markAllRead', {});
+    }
+
+    function renderNotifications(notifications) {
+      const container = document.getElementById('notifications-container');
+      if (!notifications || notifications.length === 0) return;
+
+      const icons = {
+        'INTERVIEW': '🎯', 'SHORTLISTED': '🎉', 'OFFER': '🏆',
+        'REJECTION': '❌', 'APPLICATION_SUBMITTED': '📬',
+        'APPLICATION_FAILED': '⚠', 'MANUAL_ACTION': '⚠',
+        'ASSESSMENT': '🧪', 'RECRUITER_RESPONSE': '💬',
+        'FOLLOW_UP_DUE': '📧', 'DEADLINE_APPROACHING': '⏰',
+      };
+
+      container.innerHTML = notifications.map(n => `
+        <div class="notification ${n.read ? '' : 'unread'} ${n.priority === 'HIGH' ? 'high-priority' : ''} animate-slide-in">
+          <span class="notification-icon">${icons[n.type] || '🔔'}</span>
+          <div style="flex:1">
+            <div class="notification-title">${n.title}</div>
+            <div class="notification-message">${n.message}</div>
+            <div class="notification-time">${new Date(n.createdAt).toLocaleString('en-IN')}</div>
+          </div>
+          ${n.actionUrl ? `<a href="${n.actionUrl}" target="_blank" class="btn btn-ghost btn-sm">Open</a>` : ''}
+        </div>
+      `).join('');
+    }
+
+    window.addEventListener('message', (event) => {
+      const data = event.data;
+      if (data?.result) console.log('Response:', data);
+    });
+  </script>
+</body>
+</html>

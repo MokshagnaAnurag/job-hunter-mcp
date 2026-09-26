@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Hunter — Dashboard</title>
+  <meta name="description" content="Autonomous job search dashboard showing applications, interviews, and pipeline status">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="app-header">
+      <div>
+        <h1>🎯 Job Hunter</h1>
+        <p class="subtitle">Autonomous Job Search Dashboard</p>
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost btn-sm" id="btn-refresh" onclick="refreshData()">↻ Refresh</button>
+        <button class="btn btn-primary btn-sm" id="btn-start-search" onclick="startSearch()">🔍 Search Jobs</button>
+      </div>
+    </header>
+
+    <!-- Stats Overview -->
+    <section class="grid grid-4 stagger mb-4" id="stats-section">
+      <div class="stat-card animate-fade-in">
+        <div class="stat-icon purple">📋</div>
+        <div>
+          <div class="stat-value" id="stat-discovered">0</div>
+          <div class="stat-label">Jobs Discovered</div>
+        </div>
+      </div>
+      <div class="stat-card animate-fade-in">
+        <div class="stat-icon blue">📬</div>
+        <div>
+          <div class="stat-value" id="stat-applied">0</div>
+          <div class="stat-label">Applications</div>
+        </div>
+      </div>
+      <div class="stat-card animate-fade-in">
+        <div class="stat-icon green">🎯</div>
+        <div>
+          <div class="stat-value" id="stat-interviews">0</div>
+          <div class="stat-label">Interviews</div>
+        </div>
+      </div>
+      <div class="stat-card animate-fade-in">
+        <div class="stat-icon amber">🏆</div>
+        <div>
+          <div class="stat-value" id="stat-offers">0</div>
+          <div class="stat-label">Offers</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pipeline -->
+    <section class="card animate-fade-in mb-4">
+      <div class="card-header">
+        <h2 class="card-title">Application Pipeline</h2>
+      </div>
+      <div class="pipeline" id="pipeline">
+        <div class="pipeline-stage active">
+          <div class="pipeline-count" id="pipe-discovered">0</div>
+          <div class="pipeline-label">Discovered</div>
+        </div>
+        <span class="pipeline-arrow">→</span>
+        <div class="pipeline-stage">
+          <div class="pipeline-count" id="pipe-matched">0</div>
+          <div class="pipeline-label">Matched</div>
+        </div>
+        <span class="pipeline-arrow">→</span>
+        <div class="pipeline-stage">
+          <div class="pipeline-count" id="pipe-applied">0</div>
+          <div class="pipeline-label">Applied</div>
+        </div>
+        <span class="pipeline-arrow">→</span>
+        <div class="pipeline-stage">
+          <div class="pipeline-count" id="pipe-assessment">0</div>
+          <div class="pipeline-label">Assessment</div>
+        </div>
+        <span class="pipeline-arrow">→</span>
+        <div class="pipeline-stage">
+          <div class="pipeline-count" id="pipe-shortlisted">0</div>
+          <div class="pipeline-label">Shortlisted</div>
+        </div>
+        <span class="pipeline-arrow">→</span>
+        <div class="pipeline-stage">
+          <div class="pipeline-count" id="pipe-interview">0</div>
+          <div class="pipeline-label">Interview</div>
+        </div>
+        <span class="pipeline-arrow">→</span>
+        <div class="pipeline-stage">
+          <div class="pipeline-count" id="pipe-offer">0</div>
+          <div class="pipeline-label">Offer</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid grid-2">
+      <!-- Upcoming Interviews -->
+      <section class="card animate-fade-in">
+        <div class="card-header">
+          <h2 class="card-title">🎯 Upcoming Interviews</h2>
+        </div>
+        <div id="interviews-list">
+          <div class="empty-state">
+            <div class="empty-state-icon">📅</div>
+            <p class="empty-state-title">No upcoming interviews</p>
+            <p class="empty-state-text">Interviews will appear here when detected from emails or manually recorded.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Attention Required -->
+      <section class="card animate-fade-in">
+        <div class="card-header">
+          <h2 class="card-title">⚠ Requires Attention</h2>
+        </div>
+        <div id="attention-list">
+          <div class="empty-state">
+            <div class="empty-state-icon">✅</div>
+            <p class="empty-state-title">All caught up</p>
+            <p class="empty-state-text">No items require your attention right now.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Recent Activity -->
+    <section class="card animate-fade-in mt-4">
+      <div class="card-header">
+        <h2 class="card-title">📊 Recent Activity</h2>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Role</th>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="activity-table">
+            <tr>
+              <td colspan="5" class="text-muted" style="text-align:center; padding: 32px;">
+                No activity yet. Start by uploading your resume and searching for jobs.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Notifications -->
+    <section class="card animate-fade-in mt-4">
+      <div class="card-header">
+        <h2 class="card-title">🔔 Notifications</h2>
+        <button class="btn btn-ghost btn-sm" onclick="markAllRead()">Mark all read</button>
+      </div>
+      <div id="notifications-list">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔕</div>
+          <p class="empty-state-title">No notifications</p>
+          <p class="empty-state-text">You'll be notified about interviews, shortlists, rejections, and other important events.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Automation Status -->
+    <section class="card animate-fade-in mt-4">
+      <div class="card-header">
+        <h2 class="card-title">🤖 Automation Status</h2>
+      </div>
+      <div class="grid grid-3 gap-3" id="automation-toggles">
+        <div class="flex items-center gap-3">
+          <span style="font-size: 20px">🔍</span>
+          <div>
+            <div class="card-title">Job Discovery</div>
+            <div class="text-xs text-muted">Auto-search configured sources</div>
+          </div>
+          <span class="badge applied" style="margin-left:auto">Active</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span style="font-size: 20px">📝</span>
+          <div>
+            <div class="card-title">Resume Tailoring</div>
+            <div class="text-xs text-muted">Auto-tailor for matched jobs</div>
+          </div>
+          <span class="badge applied" style="margin-left:auto">Active</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span style="font-size: 20px">📬</span>
+          <div>
+            <div class="card-title">Auto Applications</div>
+            <div class="text-xs text-muted">Submit when permitted</div>
+          </div>
+          <span class="badge pending" style="margin-left:auto">Approval</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span style="font-size: 20px">👁</span>
+          <div>
+            <div class="card-title">Status Monitoring</div>
+            <div class="text-xs text-muted">Track application updates</div>
+          </div>
+          <span class="badge applied" style="margin-left:auto">Active</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span style="font-size: 20px">🎯</span>
+          <div>
+            <div class="card-title">Interview Detection</div>
+            <div class="text-xs text-muted">Detect from emails/messages</div>
+          </div>
+          <span class="badge applied" style="margin-left:auto">Active</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <span style="font-size: 20px">📧</span>
+          <div>
+            <div class="card-title">Email Monitoring</div>
+            <div class="text-xs text-muted">Monitor recruiting emails</div>
+          </div>
+          <span class="badge discovered" style="margin-left:auto">Off</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // MCP App Communication Layer
+    const MCP_ORIGIN = '*';
+
+    function sendMcpMessage(method, params) {
+      window.parent.postMessage(
+        { jsonrpc: '2.0', method, params, id: Date.now() },
+        MCP_ORIGIN
+      );
+    }
+
+    function callTool(toolName, params) {
+      sendMcpMessage('tools/call', { name: toolName, arguments: params });
+    }
+
+    // Dashboard Actions
+    function refreshData() {
+      callTool('list-applications', { limit: 50 });
+      callTool('get-upcoming-interviews', {});
+    }
+
+    function startSearch() {
+      callTool('search-jobs', { limit: 25 });
+    }
+
+    function markAllRead() {
+      sendMcpMessage('notifications/markAllRead', {});
+    }
+
+    // Status badge helper
+    function getStatusBadge(status) {
+      const map = {
+        'DISCOVERED': 'discovered',
+        'APPLIED': 'applied',
+        'SHORTLISTED': 'shortlisted',
+        'INTERVIEW_INVITED': 'interview',
+        'INTERVIEW_SCHEDULED': 'interview',
+        'REJECTED': 'rejected',
+        'OFFER': 'offer',
+        'MANUAL_ACTION_REQUIRED': 'manual',
+        'READY_TO_APPLY': 'pending',
+      };
+      const cls = map[status] || 'discovered';
+      return `<span class="badge ${cls}">${status.replace(/_/g, ' ')}</span>`;
+    }
+
+    // Populate with sample data structure (would be populated by MCP messages)
+    function renderApplications(applications) {
+      const tbody = document.getElementById('activity-table');
+      if (!applications || applications.length === 0) return;
+
+      tbody.innerHTML = applications.map(app => `
+        <tr>
+          <td><strong>${app.company}</strong></td>
+          <td>${app.role}</td>
+          <td>${getStatusBadge(app.status)}</td>
+          <td class="text-muted text-sm">${app.date_applied ? new Date(app.date_applied).toLocaleDateString() : '—'}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="callTool('get-application', {applicationId: '${app.id}'})">View</button></td>
+        </tr>
+      `).join('');
+    }
+
+    function renderInterviews(interviews) {
+      const container = document.getElementById('interviews-list');
+      if (!interviews || interviews.length === 0) return;
+
+      container.innerHTML = interviews.map(int => `
+        <div class="interview-card" style="margin-bottom: 12px;">
+          <div class="job-title">${int.company} — ${int.role}</div>
+          <div class="text-sm text-muted">${int.round || 'Interview'} • ${int.type}</div>
+          <div class="interview-meta">
+            ${int.date ? `<span class="interview-meta-item">📅 ${int.date}</span>` : ''}
+            ${int.time ? `<span class="interview-meta-item">🕐 ${int.time} ${int.timezone || ''}</span>` : ''}
+            ${int.meeting_url ? `<span class="interview-meta-item"><a href="${int.meeting_url}" class="btn btn-sm btn-primary">Join Meeting</a></span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Listen for MCP messages
+    window.addEventListener('message', (event) => {
+      const data = event.data;
+      if (data && data.result) {
+        // Handle tool responses
+        console.log('MCP Response:', data);
+      }
+    });
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      // Send initialization handshake
+      sendMcpMessage('ui/initialize', {
+        capabilities: ['tools/call', 'notifications/read']
+      });
+    });
+  </script>
+</body>
+</html>
